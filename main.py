@@ -5,10 +5,12 @@ import sys
 import random
 import math
 from project.level_generation import Generator
+from project.images_extractor import *
 
 SIZE = (800, 600)  # size of the screen
-CENTER = (SIZE[0]/2, SIZE[1]/2)
+CENTER = (SIZE[0] / 2, SIZE[1] / 2)
 FPS = 30
+global_cycle = 0
 
 
 class MenuScreen(pygame.sprite.Sprite):
@@ -20,33 +22,109 @@ class MenuScreen(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
+        # image and physics
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load('imgs/player_standing_down.png').convert_alpha()
+
+        self.image = pygame.image.fromstring(buf_player_standing_down, player_standing_down.size,
+                                             player_standing_down.mode)
         self.rect = self.image.get_rect(center=CENTER)
         self.cycle = 0
         self.angle = 0
         self.speedx = 0
         self.speedy = 0
+
+        # stats
         self.health_points = 100
+        self.mana_points = 100
 
     def update(self):
-        (mouse_x, mouse_y) = pygame.mouse.get_pos()
+        # noinspection PyAttributeOutsideInit
+        self.mana_bar = pygame.draw.rect(sc, (0, 0, 255), (
+            self.rect.center[0] - self.mana_points / 2, self.rect.center[1] - 60,
+            self.mana_points, 5))
+        # noinspection PyAttributeOutsideInit
+        self.hp_bar = pygame.draw.rect(sc, (255, 0, 0), (
+            self.rect.center[0] - self.health_points / 2, self.rect.center[1] - 50,
+            self.health_points, 5))
+        self.health_points -= 1
+        self.mana_points -= 1
+        (x_mouse, y_mouse) = pygame.mouse.get_pos()
         player_x, player_y = self.rect.center[0], self.rect.center[1]
-        if mouse_y - self.rect.center[1] != 0:
-            self.angle = math.atan2((mouse_y - player_y), (mouse_x - player_x)) * 180 / math.pi
+        if y_mouse - self.rect.center[1] != 0:
+            self.angle = math.atan2((y_mouse - player_y), (x_mouse - player_x)) * 180 / math.pi
         else:
-            self.angle = math.atan2((mouse_y - player_y + 1), (mouse_x - player_x)) * 180 / math.pi
+            self.angle = math.atan2((y_mouse - player_y + 1), (x_mouse - player_x)) * 180 / math.pi
         if self.cycle == 10:
             self.cycle = 0
 
-        standing_up = pygame.image.load('imgs/player_standing_up.png')
-        standing_down = pygame.image.load('imgs/player_standing_down.png')
-        standing_left = pygame.image.load('imgs/player_standing_left.png')
-        standing_right = pygame.image.load('imgs/player_standing_right.png')
-        going_up = [pygame.image.load('imgs/player_up_1.png'), pygame.image.load('imgs/player_up_2.png')]
-        going_right = [pygame.image.load('imgs/player_right_1.png'), pygame.image.load('imgs/player_right_2.png')]
-        going_down = [pygame.image.load('imgs/player_down_1.png'), pygame.image.load('imgs/player_down_2.png')]
-        going_left = [pygame.image.load('imgs/player_left_1.png'), pygame.image.load('imgs/player_left_2.png')]
+        standing_up = pygame.image.fromstring(
+            buf_player_standing_up,
+            player_standing_up.size,
+            player_standing_up.mode
+        )
+        standing_down = pygame.image.fromstring(
+            buf_player_standing_down,
+            player_standing_down.size,
+            player_standing_down.mode
+        )
+        standing_left = pygame.image.fromstring(
+            buf_player_standing_left,
+            player_standing_left.size,
+            player_standing_left.mode
+        )
+        standing_right = pygame.image.fromstring(
+            buf_player_standing_right,
+            player_standing_right.size,
+            player_standing_right.mode
+        )
+        going_up = [
+            pygame.image.fromstring(
+                buf_player_walking_up_1,
+                player_walking_up_1.size,
+                player_walking_up_1.mode
+            ),
+            pygame.image.fromstring(
+                buf_player_walking_up_2,
+                player_walking_up_2.size,
+                player_walking_up_2.mode
+            )
+        ]
+        going_right = [
+            pygame.image.fromstring(
+                buf_player_walking_right_1,
+                player_walking_right_1.size,
+                player_walking_right_1.mode
+            ),
+            pygame.image.fromstring(
+                buf_player_walking_right_2,
+                player_walking_right_2.size,
+                player_walking_right_2.mode
+            )
+        ]
+        going_down = [
+            pygame.image.fromstring(
+                buf_player_walking_down_1,
+                player_walking_down_1.size,
+                player_walking_down_1.mode
+            ),
+            pygame.image.fromstring(
+                buf_player_walking_down_2,
+                player_walking_down_2.size,
+                player_walking_down_2.mode
+            )
+        ]
+        going_left = [
+            pygame.image.fromstring(
+                buf_player_walking_left_1,
+                player_walking_left_1.size,
+                player_walking_left_1.mode
+            ),
+            pygame.image.fromstring(
+                buf_player_walking_left_2,
+                player_walking_left_2.size,
+                player_walking_left_2.mode
+            )
+        ]
 
         if -135 < self.angle < -45:
             if self.speedx == 0 and self.speedy == 0:
@@ -76,10 +154,15 @@ class DungeonTile(pygame.sprite.Sprite):
     def __init__(self, x, y, dx, dy, is_floor):
         pygame.sprite.Sprite.__init__(self)
         if not is_floor:
-            self.image = pygame.image.load('imgs/wall_tile_1.png')
+            self.image = pygame.image.fromstring(buf_wall_tile_1, wall_tile_1.size, wall_tile_1.mode)
         else:
-            self.image = pygame.image.load('imgs/floor_tile_' + str(random.randint(1, 4)) + '.png')
-        self.rect = self.image.get_rect(center=(x*100 - dx, y*100 - dy))
+            self.image = random.choice([
+                pygame.image.fromstring(buf_floor_tile_1, floor_tile_1.size, floor_tile_1.mode),
+                pygame.image.fromstring(buf_floor_tile_2, floor_tile_2.size, floor_tile_2.mode),
+                pygame.image.fromstring(buf_floor_tile_3, floor_tile_3.size, floor_tile_3.mode),
+                pygame.image.fromstring(buf_floor_tile_4, floor_tile_4.size, floor_tile_4.mode),
+            ])
+        self.rect = self.image.get_rect(center=(x * 100 - dx, y * 100 - dy))
         self.speedx = 0
         self.speedy = 0
 
@@ -176,29 +259,29 @@ class Entity(pygame.sprite.Sprite):
 # pause menu cycle
 def show_pause_menu(is_paused):
     while is_paused:
-        click = False
+        pause_click = False
         for pause_event in pygame.event.get():
             if pause_event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if pause_event.type == pygame.MOUSEBUTTONDOWN:
-                click = True
+                pause_click = True
 
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        x_mouse, y_mouse = pygame.mouse.get_pos()
         pause_screen.update()
         sc.blit(pause_screen.image, pause_screen.rect)
-        if 230 < mouse_x < 570:
-            if 105 < mouse_y < 200:
+        if 230 < x_mouse < 570:
+            if 105 < y_mouse < 200:
                 resume_game_button.update()
                 sc.blit(resume_game_button.image, resume_game_button.rect)
-                if click:
+                if pause_click:
                     is_paused = False
-            if 253 < mouse_y < 348:
+            if 253 < y_mouse < 348:
                 pass
-            if 400 < mouse_y < 495:
+            if 400 < y_mouse < 495:
                 exit_game_button.update()
                 sc.blit(exit_game_button.image, exit_game_button.rect)
-                if click:
+                if pause_click:
                     pygame.quit()
                     sys.exit()
 
@@ -209,11 +292,10 @@ def show_pause_menu(is_paused):
 def update_surroundings_with_motion(motion):
     global floors
     global walls
-    global npcs
-    for wall in walls:
-        wall.give_force(motion)
-    for floor in floors:
-        floor.give_force(motion)
+    for updatable_wall in walls:
+        updatable_wall.give_force(motion)
+    for updatable_floor in floors:
+        updatable_floor.give_force(motion)
 
 
 def distance_between_two_dots(x1, y1, x2, y2):
@@ -260,7 +342,6 @@ for i in range(64):
             floors.append(DungeonTile(i, j, spawn_point_x, spawn_point_y, True))
             if random.randint(1, 50) == 42:
                 npcs.append(Entity(i, j, spawn_point_x, spawn_point_y))
-git
 
 main_menu = True
 game = True
@@ -394,6 +475,7 @@ while game:
                     npc.give_force('up')
                     npc.give_force('up')
         from_this_npc_to_player = distance_between_two_dots(npc.rect.x, npc.rect.y, player.rect.x, player.rect.y)
+        #  making NPC follow player
         if 50 < from_this_npc_to_player < 300:
             if npc.rect.y > player.rect.y + 10:
                 npc.give_force('down')
@@ -424,6 +506,11 @@ while game:
         npc.update()
     sc.blit(player.image, player.rect)
     player.update()
+
+    if global_cycle > 1000000:
+        global_cycle += 1
+    else:
+        global_cycle = 0
 
     clock.tick(FPS)
     pygame.display.update()
